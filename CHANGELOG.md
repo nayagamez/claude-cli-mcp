@@ -2,6 +2,11 @@
 
 All notable changes to this project will be documented in this file.
 
+## [0.1.2] - 2026-04-23
+
+### Changed
+- README: restore the "For Humans / For LLM Agents" Setup pattern from `codex-cli-mcp` so an LLM agent can install this server end-to-end by being handed a single one-liner that points at `docs/guide/installation.md`. Manual setup blocks moved under a `Manual Setup` heading.
+
 ## [0.1.1] - 2026-04-23
 
 ### Changed
