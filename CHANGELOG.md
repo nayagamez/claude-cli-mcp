@@ -2,6 +2,16 @@
 
 All notable changes to this project will be documented in this file.
 
+## [0.1.7] - 2026-04-23
+
+### Changed
+- Default runner switched from `bunx` to `npx -y` across `README.md`, `README.ko.md`, and `docs/guide/installation.md`. In real-world Codex setups bunx kept hitting the `MCP startup failed: handshaking with MCP server failed: connection closed: initialize response` error even after raising `startup_timeout_sec`. npm/Node ships on more user machines, the `npx -y` invocation is well-understood by Codex agents, and on Windows the cold install behaves more predictably than the bunx flow.
+  - Prerequisites §1.3 now checks `node --version` / `npm --version` instead of `bun --version`.
+  - The mandatory §2 TOML block now reads `command = "npx" / args = ["-y", "@nayagamez/claude-cli-mcp"]`.
+  - Cursor / Windsurf JSON examples (§7) updated to the same.
+  - `bunx` is preserved as Alternative A inside Troubleshooting §5.7 (alongside the absolute `node.exe` path option), so users with an existing Bun setup still have a documented path.
+  - The pre-warm guidance in §5.1 is now `npm install -g @nayagamez/claude-cli-mcp` (skips on-the-fly fetch entirely on subsequent runs).
+
 ## [0.1.6] - 2026-04-23
 
 ### Changed

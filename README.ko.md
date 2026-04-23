@@ -55,19 +55,18 @@ export ANTHROPIC_API_KEY="sk-ant-..."
 
 [Authentication 문서](https://code.claude.com/docs/en/authentication) 참조.
 
-### 3. Bun 설치 (기본 러너)
+### 3. Node.js (npm) 설치
 
-아래 Setup 스니펫은 빠른 cold-start를 위해 `bunx`로 이 서버를 호출. Bun이 없다면 설치:
+Setup 스니펫은 npm에 포함된 `npx -y`로 호출. Node ≥ 18 확인:
 
 ```bash
-# macOS / Linux / WSL
-curl -fsSL https://bun.sh/install | bash
-
-# Windows PowerShell
-powershell -c "irm bun.sh/install.ps1 | iex"
+node --version
+npm --version
 ```
 
-npm을 선호하면 Setup 스니펫의 `bunx`를 모두 `npx -y`로 바꾸면 됩니다 — 그 경우 Bun은 선택 사항.
+없다면 [nodejs.org](https://nodejs.org)에서 LTS 설치.
+
+Bun의 `bunx`를 쓰고 싶다면 (Windows `.cmd` shim 이슈 회피) [installation guide §5.7](./docs/guide/installation.md#57-alternative-runners-buns-bunx-or-absolute-nodeexe) 참조.
 
 ## 도구
 
@@ -136,7 +135,7 @@ curl -s https://raw.githubusercontent.com/nayagamez/claude-cli-mcp/main/docs/gui
 
 ### Manual Setup
 
-> 아래 예시는 [Bun](https://bun.sh)의 `bunx`를 기본 러너로 사용 — 시작이 빠르고 Node 호환. npm을 선호하면 `bunx` → `npx -y`로 바꾸면 됨 (npm은 자동 설치 동의 위해 `-y` 필요, bunx는 기본적으로 자동 설치).
+> 아래 예시는 `npx -y`를 기본 러너로 사용. Bun의 `bunx`를 쓰고 싶다면 [installation guide §5.7](./docs/guide/installation.md#57-alternative-runners-buns-bunx-or-absolute-nodeexe) 참조.
 
 #### Codex CLI
 
@@ -144,24 +143,16 @@ curl -s https://raw.githubusercontent.com/nayagamez/claude-cli-mcp/main/docs/gui
 
 ```toml
 [mcp_servers.claude-cli-mcp]
-command = "bunx"
-args = ["@nayagamez/claude-cli-mcp"]
+command = "npx"
+args = ["-y", "@nayagamez/claude-cli-mcp"]
 
-# Codex 기본은 10s / 60s. bunx cold install + Claude Code 첫 응답이
-# 이를 쉽게 초과하므로 여유 있게 늘림.
+# Codex 기본 (10s / 60s)는 npx cold install + Claude Code 첫 응답에
+# 너무 짧음. 절대 빼지 말 것.
 startup_timeout_sec = 30
 tool_timeout_sec = 600
 ```
 
-Codex를 재시작해서 로드.
-
-timeout 오버라이드가 필요 없다면 아래 명령으로도 가능:
-```bash
-codex mcp add claude-cli-mcp -- bunx @nayagamez/claude-cli-mcp
-```
-(글로벌 config에 timeout 키 없이 위 블록만 기록.)
-
-프로젝트 스코프와 trusted-project 동작은 [installation guide](./docs/guide/installation.md) 참조.
+Codex를 재시작해서 로드. 프로젝트 스코프와 trusted-project 동작은 [installation guide](./docs/guide/installation.md) 참조.
 
 #### Cursor / Windsurf
 
@@ -171,8 +162,8 @@ codex mcp add claude-cli-mcp -- bunx @nayagamez/claude-cli-mcp
 {
   "mcpServers": {
     "claude-cli-mcp": {
-      "command": "bunx",
-      "args": ["@nayagamez/claude-cli-mcp"]
+      "command": "npx",
+      "args": ["-y", "@nayagamez/claude-cli-mcp"]
     }
   }
 }

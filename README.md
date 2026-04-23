@@ -55,19 +55,18 @@ export ANTHROPIC_API_KEY="sk-ant-..."
 
 See [Authentication docs](https://code.claude.com/docs/en/authentication).
 
-### 3. Install Bun (default runner)
+### 3. Node.js (npm) installed
 
-The Setup snippets below invoke this server with `bunx` for fast cold-start. Install Bun if you don't have it:
+The Setup snippets below invoke this server with `npx -y` (ships with npm). Verify Node ≥ 18:
 
 ```bash
-# macOS / Linux / WSL
-curl -fsSL https://bun.sh/install | bash
-
-# Windows PowerShell
-powershell -c "irm bun.sh/install.ps1 | iex"
+node --version
+npm --version
 ```
 
-If you'd rather use npm, replace every `bunx` with `npx -y` in the Setup snippets — Bun is then optional.
+If missing, install Node.js LTS from [nodejs.org](https://nodejs.org).
+
+If you'd rather use Bun's `bunx` (avoids Windows `.cmd` shim issues), see the [installation guide §5.7](./docs/guide/installation.md#57-alternative-runners-buns-bunx-or-absolute-nodeexe) for the alternative TOML block.
 
 ## Tools
 
@@ -136,7 +135,7 @@ curl -s https://raw.githubusercontent.com/nayagamez/claude-cli-mcp/main/docs/gui
 
 ### Manual Setup
 
-> Examples below use `bunx` ([Bun](https://bun.sh)) as the default runner — faster startup, drop-in Node-compatible. If you prefer npm, swap `bunx` → `npx -y` in any snippet (npm needs `-y` to skip the auto-install confirmation; bunx auto-installs without it).
+> Examples below use `npx -y` as the default runner. If you'd rather use Bun's `bunx`, see [installation guide §5.7](./docs/guide/installation.md#57-alternative-runners-buns-bunx-or-absolute-nodeexe).
 
 #### Codex CLI
 
@@ -144,24 +143,16 @@ Edit `~/.codex/config.toml` (global) or `.codex/config.toml` (project-scoped, tr
 
 ```toml
 [mcp_servers.claude-cli-mcp]
-command = "bunx"
-args = ["@nayagamez/claude-cli-mcp"]
+command = "npx"
+args = ["-y", "@nayagamez/claude-cli-mcp"]
 
-# Codex defaults are 10s / 60s. bunx cold install + Claude Code first
-# response easily exceed those.
+# Codex defaults (10s / 60s) are too short for npx cold install +
+# Claude Code first response. Do not omit these.
 startup_timeout_sec = 30
 tool_timeout_sec = 600
 ```
 
-Restart Codex to load the server.
-
-If you don't need to override timeouts, you can also run:
-```bash
-codex mcp add claude-cli-mcp -- bunx @nayagamez/claude-cli-mcp
-```
-(writes the block above to the global config without the timeout keys.)
-
-See [installation guide](./docs/guide/installation.md) for project-scope and trusted-project notes.
+Restart Codex to load the server. See [installation guide](./docs/guide/installation.md) for project-scope and trusted-project notes.
 
 #### Cursor / Windsurf
 
@@ -171,8 +162,8 @@ Add to the appropriate MCP config (`.cursor/mcp.json`, `~/.cursor/mcp.json`, `.w
 {
   "mcpServers": {
     "claude-cli-mcp": {
-      "command": "bunx",
-      "args": ["@nayagamez/claude-cli-mcp"]
+      "command": "npx",
+      "args": ["-y", "@nayagamez/claude-cli-mcp"]
     }
   }
 }

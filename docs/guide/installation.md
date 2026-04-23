@@ -46,21 +46,17 @@ If not logged in, pick one of the three:
 
 After fixing, re-run `claude auth status` and confirm `loggedIn: true` before continuing.
 
-### 1.3 Bun installed
+### 1.3 Node.js (npm) installed
 
 ```bash
-bun --version
+node --version
+npm --version
 ```
-Expected: a version string like `1.x.x`.
+Expected: Node `>= 18`, npm `>= 9`.
 
-If missing, install:
+If missing, install Node.js LTS from [nodejs.org](https://nodejs.org) (or via your platform package manager: `brew install node`, `winget install OpenJS.NodeJS.LTS`, `apt install nodejs npm`, etc.).
 
-| Platform | Command |
-|---|---|
-| macOS / Linux / WSL | `curl -fsSL https://bun.sh/install \| bash` |
-| Windows PowerShell | `powershell -c "irm bun.sh/install.ps1 \| iex"` |
-
-> `bunx` is a native `bunx.exe` on Windows (no `.cmd` shim), which avoids [openai/codex#16229](https://github.com/openai/codex/issues/16229). If you cannot install Bun, see Troubleshooting §5 for the `npx` fallback.
+> The recommended runner is `npx -y` (ships with npm). If you would rather use Bun's `bunx`, see Troubleshooting §5.7 for the alternative TOML block.
 
 ---
 
@@ -79,13 +75,13 @@ Ask the user (in their language): "Where do you want claude-cli-mcp available?"
 
 ```toml
 [mcp_servers.claude-cli-mcp]
-command = "bunx"
-args = ["@nayagamez/claude-cli-mcp"]
+command = "npx"
+args = ["-y", "@nayagamez/claude-cli-mcp"]
 startup_timeout_sec = 30
 tool_timeout_sec = 600
 ```
 
-> **Both `startup_timeout_sec` and `tool_timeout_sec` are required.** Codex's defaults (10s / 60s) are shorter than `bunx`'s cold install and Claude Code's typical first response. Do not omit them. Do not lower them.
+> **Both `startup_timeout_sec` and `tool_timeout_sec` are required.** Codex's defaults (10s / 60s) are shorter than `npx`'s cold install and Claude Code's typical first response. Do not omit them. Do not lower them.
 
 ### 2.3 (Optional) Override Claude Code binary path
 
@@ -152,21 +148,12 @@ Match the symptom verbatim.
 Codex's startup timeout fired before the server replied. The §2 block already sets `startup_timeout_sec = 30`. If you still see this:
 
 1. **Confirm you saved the file and restarted Codex** (§3). This is the most common cause.
-2. Pre-warm the bunx cache:
+2. Pre-warm the npx cache by installing the package globally so npx skips the on-the-fly fetch:
    ```bash
-   echo '' | bunx @nayagamez/claude-cli-mcp
+   npm install -g @nayagamez/claude-cli-mcp
    ```
-   Wait a few seconds, press Ctrl-C. Subsequent Codex spawns will be faster.
 3. Bump the timeout further: change `startup_timeout_sec = 30` to `60`, save, restart.
-4. **Switch to the `npx` fallback** (slower per call but sometimes more stable on Windows):
-   ```toml
-   [mcp_servers.claude-cli-mcp]
-   command = "npx"
-   args = ["-y", "@nayagamez/claude-cli-mcp"]
-   startup_timeout_sec = 30
-   tool_timeout_sec = 600
-   ```
-   Save, restart Codex.
+4. After §5.1.2 you can also point Codex at the installed entrypoint directly to bypass `npx` entirely (see §5.7).
 
 ### 5.2 `tool not found` / `no such tool: mcp__claude-cli-mcp__claude` / "MCP server not loaded"
 
@@ -197,17 +184,46 @@ The wrapped `claude` cannot authenticate. Re-do §1.2 and confirm `claude auth s
 
 Known upstream bug ([anthropics/claude-code#50616](https://github.com/anthropics/claude-code/issues/50616)). The wrapper cannot work around it. Run Codex inside WSL, or set `CLAUDE_CLI_PATH` to a WSL path.
 
-### 5.7 Codex on Windows fails to launch via shell-shimmed runners
+### 5.7 Alternative runners (Bun's `bunx`, or absolute `node.exe`)
 
-Known upstream bug ([openai/codex#16229](https://github.com/openai/codex/issues/16229)). `bunx` is a native `bunx.exe` and is the safer choice on Windows. If you must use `npx` (a `.cmd` shim), point Codex at an absolute `node.exe` + the installed package's entry script:
+If `npx` keeps failing — typically on Windows where `npx.cmd` is a shell shim ([openai/codex#16229](https://github.com/openai/codex/issues/16229)) — switch to one of the alternatives below. Both still need §3 (restart) afterwards.
+
+#### A. Bun's `bunx` (native `bunx.exe`, no shim)
+
+Install Bun once:
+
+| Platform | Command |
+|---|---|
+| macOS / Linux / WSL | `curl -fsSL https://bun.sh/install \| bash` |
+| Windows PowerShell | `powershell -c "irm bun.sh/install.ps1 \| iex"` |
+
+Then replace the §2 block with:
+
+```toml
+[mcp_servers.claude-cli-mcp]
+command = "bunx"
+args = ["@nayagamez/claude-cli-mcp"]
+startup_timeout_sec = 30
+tool_timeout_sec = 600
+```
+
+#### B. Absolute `node.exe` + installed package
+
+Install the package globally so its entrypoint is on disk, then point Codex at it directly:
+
+```bash
+npm install -g @nayagamez/claude-cli-mcp
+```
 
 ```toml
 [mcp_servers.claude-cli-mcp]
 command = "C:\\Program Files\\nodejs\\node.exe"
-args = ["C:\\path\\to\\global\\node_modules\\@nayagamez\\claude-cli-mcp\\dist\\index.js"]
+args = ["C:\\Users\\<you>\\AppData\\Roaming\\npm\\node_modules\\@nayagamez\\claude-cli-mcp\\dist\\index.js"]
 startup_timeout_sec = 30
 tool_timeout_sec = 600
 ```
+
+Find the exact path with `npm root -g` (append `\@nayagamez\claude-cli-mcp\dist\index.js`).
 
 ---
 
@@ -238,11 +254,11 @@ If the user is on Cursor or Windsurf instead of Codex, replace §2.2 with the ap
 {
   "mcpServers": {
     "claude-cli-mcp": {
-      "command": "bunx",
-      "args": ["@nayagamez/claude-cli-mcp"]
+      "command": "npx",
+      "args": ["-y", "@nayagamez/claude-cli-mcp"]
     }
   }
 }
 ```
 
-> Cursor/Windsurf do not currently expose Codex's `startup_timeout_sec`/`tool_timeout_sec` keys. If you hit timeouts there, pre-warm the bunx cache (§5.1 step 2) before launching the editor.
+> Cursor/Windsurf do not currently expose Codex's `startup_timeout_sec`/`tool_timeout_sec` keys. If you hit timeouts there, pre-install the package globally (`npm install -g @nayagamez/claude-cli-mcp`) before launching the editor so npx skips the on-the-fly fetch.
