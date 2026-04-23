@@ -140,21 +140,28 @@ curl -s https://raw.githubusercontent.com/nayagamez/claude-cli-mcp/main/docs/gui
 
 #### Codex CLI
 
-`codex mcp add`는 글로벌 `~/.codex/config.toml`에 기록:
-
-```bash
-codex mcp add claude-cli-mcp -- bunx @nayagamez/claude-cli-mcp
-```
-
-동일한 효과의 직접 편집 (프로젝트 스코프 `.codex/config.toml`에도 동일 사용):
+`~/.codex/config.toml` (글로벌) 또는 `.codex/config.toml` (프로젝트 스코프, trusted projects만)에 추가:
 
 ```toml
 [mcp_servers.claude-cli-mcp]
 command = "bunx"
 args = ["@nayagamez/claude-cli-mcp"]
+
+# Codex 기본은 10s / 60s. bunx cold install + Claude Code 첫 응답이
+# 이를 쉽게 초과하므로 여유 있게 늘림.
+startup_timeout_sec = 30
+tool_timeout_sec = 600
 ```
 
-Codex를 재시작해서 로드. 프로젝트 스코프와 trusted-project 동작은 [installation guide](./docs/guide/installation.md) 참조.
+Codex를 재시작해서 로드.
+
+timeout 오버라이드가 필요 없다면 아래 명령으로도 가능:
+```bash
+codex mcp add claude-cli-mcp -- bunx @nayagamez/claude-cli-mcp
+```
+(글로벌 config에 timeout 키 없이 위 블록만 기록.)
+
+프로젝트 스코프와 trusted-project 동작은 [installation guide](./docs/guide/installation.md) 참조.
 
 #### Cursor / Windsurf
 

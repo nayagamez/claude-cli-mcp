@@ -2,6 +2,11 @@
 
 All notable changes to this project will be documented in this file.
 
+## [0.1.4] - 2026-04-23
+
+### Changed
+- README + `docs/guide/installation.md`: the recommended Codex CLI install is now a direct `config.toml` edit that includes `startup_timeout_sec = 30` and `tool_timeout_sec = 600`. Codex's default 10s startup timeout is shorter than `bunx`'s cold-install + Claude Code's first response, which caused `MCP startup failed: handshaking with MCP server failed: connection closed: initialize response` for many users. The `codex mcp add` one-liner is kept as an alternative for cached/fast environments.
+
 ## [0.1.3] - 2026-04-23
 
 ### Changed

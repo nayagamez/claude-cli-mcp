@@ -104,50 +104,52 @@ Determine which MCP client you are running in. Match one of the sections below.
 
 ### Codex CLI (primary target)
 
-Codex stores MCP server entries in `config.toml`. **The `codex mcp add` command always writes to the global file `~/.codex/config.toml`.** For project-scoped install you must edit `.codex/config.toml` directly.
+Codex stores MCP server entries in `config.toml`. **The `codex mcp add` command always writes to the global file `~/.codex/config.toml` and does NOT set timeout keys.** Because `bunx`'s first run downloads the package and Claude Code itself takes a moment to start, you almost certainly want to extend the default timeouts. Editing `config.toml` directly is the recommended path.
 
-#### If user chose **All projects (global)**
+#### If user chose **All projects (global)** — edit `~/.codex/config.toml`
+#### If user chose **This project only (private)** — edit (or create) `.codex/config.toml` in the project root
 
-Run:
+In both cases add the same TOML block:
+
+```toml
+[mcp_servers.claude-cli-mcp]
+command = "bunx"
+args = ["@nayagamez/claude-cli-mcp"]
+
+# Codex defaults are 10s / 60s. bunx cold install + Claude Code first
+# response easily exceed those. Override generously.
+startup_timeout_sec = 30
+tool_timeout_sec = 600
+```
+
+> Codex only loads `.codex/config.toml` for projects the user has marked as trusted. Confirm trust the next time you open the project.
+
+#### Alternative — `codex mcp add` (global only, no timeouts)
+
+If you don't need to set timeouts (e.g. the package is already cached and you have a fast network), you can use:
 
 ```bash
 codex mcp add claude-cli-mcp -- bunx @nayagamez/claude-cli-mcp
 ```
 
-This writes a `[mcp_servers.claude-cli-mcp]` block to `~/.codex/config.toml`. Equivalent manual edit:
-
-```toml
-[mcp_servers.claude-cli-mcp]
-command = "bunx"
-args = ["@nayagamez/claude-cli-mcp"]
-```
-
-#### If user chose **This project only (private)**
-
-Edit (or create) `.codex/config.toml` in the project root and add the same block:
-
-```toml
-[mcp_servers.claude-cli-mcp]
-command = "bunx"
-args = ["@nayagamez/claude-cli-mcp"]
-```
-
-> Codex only loads `.codex/config.toml` for projects the user has marked as trusted. The user may need to confirm trust the next time they open the project.
+This writes the block above without `startup_timeout_sec` / `tool_timeout_sec`. You can re-edit `~/.codex/config.toml` afterwards to add them.
 
 #### Optional — override Claude Code binary path
 
-If `claude` is not on `PATH`, add an env subtable. The `[mcp_servers.<name>.env]` form sets the env directly (use this for static values). The separate `env_vars = [...]` array key tells Codex to forward variables that are already set in the user's shell.
+If `claude` is not on `PATH`, add an env subtable. The `[mcp_servers.<name>.env]` form sets static values; the separate `env_vars = [...]` array tells Codex to forward variables that are already set in the user's shell.
 
 ```toml
 [mcp_servers.claude-cli-mcp]
 command = "bunx"
 args = ["@nayagamez/claude-cli-mcp"]
+startup_timeout_sec = 30
+tool_timeout_sec = 600
 
 [mcp_servers.claude-cli-mcp.env]
 CLAUDE_CLI_PATH = "/absolute/path/to/claude"
 ```
 
-After saving, restart Codex (close and reopen the CLI session, or restart the IDE extension) to load the new server.
+After saving, **restart Codex** (close and reopen the CLI session, or restart the IDE extension) to load the new server.
 
 ### Cursor
 
@@ -185,19 +187,27 @@ After saving, restart Codex (close and reopen the CLI session, or restart the ID
 
 ### Codex CLI
 
-In a fresh `codex` session, ask Codex to call the new tool. Codex's MCP tool naming uses the `mcp__<server>__<tool>` convention. Try:
+**IMPORTANT: Codex loads MCP servers at session startup.** If you ran `codex mcp add` (or edited `config.toml`) inside an existing `codex` session, that session does NOT see the new server yet. You must restart Codex first:
 
-```
-prompt: Call the mcp__claude-cli-mcp__claude tool with prompt "say hi only" and report what you get back.
-```
+1. In the current Codex session, type `/exit` to quit.
+2. Run `codex` again to start a fresh session.
+3. In the new session, simply ask:
 
-If you see a Session ID in the response, the setup is complete. You can also verify the server is loaded with:
+   ```
+   say hello using claude-cli-mcp
+   ```
+
+   Codex will invoke the `claude` tool and you should see a Session ID in the response.
+
+You can also confirm the server is registered without making a tool call:
 
 ```bash
 codex mcp list
 ```
 
 It should list `claude-cli-mcp`.
+
+> **Skipping the restart causes Codex to look very confused** (it sees the config but no tool, or replies as if the server doesn't exist). Always `/exit` and reopen.
 
 ### Cursor / Windsurf
 

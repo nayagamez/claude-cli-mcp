@@ -140,21 +140,28 @@ curl -s https://raw.githubusercontent.com/nayagamez/claude-cli-mcp/main/docs/gui
 
 #### Codex CLI
 
-`codex mcp add` writes to the global `~/.codex/config.toml`:
-
-```bash
-codex mcp add claude-cli-mcp -- bunx @nayagamez/claude-cli-mcp
-```
-
-Equivalent manual edit (also required for project-scoped install via `.codex/config.toml`):
+Edit `~/.codex/config.toml` (global) or `.codex/config.toml` (project-scoped, trusted projects only):
 
 ```toml
 [mcp_servers.claude-cli-mcp]
 command = "bunx"
 args = ["@nayagamez/claude-cli-mcp"]
+
+# Codex defaults are 10s / 60s. bunx cold install + Claude Code first
+# response easily exceed those.
+startup_timeout_sec = 30
+tool_timeout_sec = 600
 ```
 
-Restart Codex to load the server. See [installation guide](./docs/guide/installation.md) for project-scope and trusted-project notes.
+Restart Codex to load the server.
+
+If you don't need to override timeouts, you can also run:
+```bash
+codex mcp add claude-cli-mcp -- bunx @nayagamez/claude-cli-mcp
+```
+(writes the block above to the global config without the timeout keys.)
+
+See [installation guide](./docs/guide/installation.md) for project-scope and trusted-project notes.
 
 #### Cursor / Windsurf
 
