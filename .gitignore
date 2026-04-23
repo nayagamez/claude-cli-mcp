@@ -1,0 +1,9 @@
+node_modules/
+dist/
+*.tmp
+
+# Local-only: Claude Code session state, ralph loop, settings
+.claude/
+
+# Internal planning / implementation history (kept out of public repo, like codex-cli-mcp)
+plans/
