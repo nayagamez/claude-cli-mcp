@@ -1,5 +1,9 @@
 <div align="center">
 
+<picture>
+  <img alt="claude-cli-mcp" src="docs/images/banner.svg" width="100%">
+</picture>
+
 ### Anthropic Claude Code CLI를 MCP 클라이언트에 연결하세요
 
 [English](./README.md) | 한국어

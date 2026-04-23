@@ -1,5 +1,9 @@
 <div align="center">
 
+<picture>
+  <img alt="claude-cli-mcp" src="docs/images/banner.svg" width="100%">
+</picture>
+
 ### Bridge Anthropic Claude Code CLI to any MCP client
 
 English | [한국어](./README.ko.md)
