@@ -2,6 +2,11 @@
 
 All notable changes to this project will be documented in this file.
 
+## [0.1.3] - 2026-04-23
+
+### Changed
+- README: Bun install moved up to Prerequisites §3 (it's the default runner — should not be hidden inside Setup → Manual Setup). The duplicate Bun install snippet at the bottom of Manual Setup was removed.
+
 ## [0.1.2] - 2026-04-23
 
 ### Changed

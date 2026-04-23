@@ -55,6 +55,20 @@ export ANTHROPIC_API_KEY="sk-ant-..."
 
 See [Authentication docs](https://code.claude.com/docs/en/authentication).
 
+### 3. Install Bun (default runner)
+
+The Setup snippets below invoke this server with `bunx` for fast cold-start. Install Bun if you don't have it:
+
+```bash
+# macOS / Linux / WSL
+curl -fsSL https://bun.sh/install | bash
+
+# Windows PowerShell
+powershell -c "irm bun.sh/install.ps1 | iex"
+```
+
+If you'd rather use npm, replace every `bunx` with `npx -y` in the Setup snippets — Bun is then optional.
+
 ## Tools
 
 ### `claude`
@@ -157,13 +171,6 @@ Add to the appropriate MCP config (`.cursor/mcp.json`, `~/.cursor/mcp.json`, `.w
 }
 ```
 
-**Install Bun** (if you don't have it):
-```bash
-# macOS / Linux / WSL
-curl -fsSL https://bun.sh/install | bash
-# Windows PowerShell
-powershell -c "irm bun.sh/install.ps1 | iex"
-```
 
 ## Progress Notifications
 
