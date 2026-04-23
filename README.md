@@ -102,19 +102,31 @@ Continue an existing Claude Code session.
 
 ## Setup
 
+> The primary use case is **OpenAI Codex CLI** delegating work to Claude Code as a sub-agent. Cursor and Windsurf are also supported. Calling this server from Claude Code itself is not useful (Claude calling Claude).
+>
 > Examples below use `bunx` ([Bun](https://bun.sh)) as the default runner — faster startup, drop-in Node-compatible. If you prefer npm, swap `bunx` → `npx -y` in any snippet (npm needs `-y` to skip the auto-install confirmation; bunx auto-installs without it).
 
-### Claude Code
+### Codex CLI
+
+`codex mcp add` writes to the global `~/.codex/config.toml`:
 
 ```bash
-claude mcp add claude-cli-mcp -- bunx @nayagamez/claude-cli-mcp
+codex mcp add claude-cli-mcp -- bunx @nayagamez/claude-cli-mcp
 ```
 
-Add `--scope project` for shared team config or `--scope user` for global.
+Equivalent manual edit (also required for project-scoped install via `.codex/config.toml`):
 
-### Claude Desktop / Cursor / Windsurf
+```toml
+[mcp_servers.claude-cli-mcp]
+command = "bunx"
+args = ["@nayagamez/claude-cli-mcp"]
+```
 
-Add to the appropriate MCP config:
+Restart Codex to load the server. See [installation guide](./docs/guide/installation.md) for project-scope and trusted-project notes.
+
+### Cursor / Windsurf
+
+Add to the appropriate MCP config (`.cursor/mcp.json`, `~/.cursor/mcp.json`, `.windsurf/mcp.json`, etc.):
 
 ```json
 {

@@ -102,19 +102,31 @@ export ANTHROPIC_API_KEY="sk-ant-..."
 
 ## 설정
 
+> 주 사용처는 **OpenAI Codex CLI에서 Claude Code를 sub-agent로 호출**하는 것. Cursor/Windsurf도 지원. Claude Code에서 이 서버를 부르는 건 무의미 (Claude가 Claude를 부르는 격).
+>
 > 아래 예시는 [Bun](https://bun.sh)의 `bunx`를 기본 러너로 사용 — 시작이 빠르고 Node 호환. npm을 선호하면 `bunx` → `npx -y`로 바꾸면 됨 (npm은 자동 설치 동의 위해 `-y` 필요, bunx는 기본적으로 자동 설치).
 
-### Claude Code
+### Codex CLI
+
+`codex mcp add`는 글로벌 `~/.codex/config.toml`에 기록:
 
 ```bash
-claude mcp add claude-cli-mcp -- bunx @nayagamez/claude-cli-mcp
+codex mcp add claude-cli-mcp -- bunx @nayagamez/claude-cli-mcp
 ```
 
-팀 공유는 `--scope project`, 글로벌은 `--scope user`.
+동일한 효과의 직접 편집 (프로젝트 스코프 `.codex/config.toml`에도 동일 사용):
 
-### Claude Desktop / Cursor / Windsurf
+```toml
+[mcp_servers.claude-cli-mcp]
+command = "bunx"
+args = ["@nayagamez/claude-cli-mcp"]
+```
 
-해당 MCP 설정 파일에 추가:
+Codex를 재시작해서 로드. 프로젝트 스코프와 trusted-project 동작은 [installation guide](./docs/guide/installation.md) 참조.
+
+### Cursor / Windsurf
+
+해당 MCP 설정 파일 (`.cursor/mcp.json`, `~/.cursor/mcp.json`, `.windsurf/mcp.json` 등):
 
 ```json
 {

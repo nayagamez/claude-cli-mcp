@@ -2,6 +2,11 @@
 
 All notable changes to this project will be documented in this file.
 
+## [0.1.1] - 2026-04-23
+
+### Changed
+- README Setup section reorganized: Codex CLI is now the primary client example (the actual intended use case — Codex delegating to Claude Code as a sub-agent). Removed the misleading Claude-Code-installs-Claude-Code example. Cursor/Windsurf consolidated into a single block.
+
 ## [0.1.0] - 2026-04-23
 
 ### Added
