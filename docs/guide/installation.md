@@ -1,142 +1,81 @@
 # claude-cli-mcp Installation Guide
 
-> This guide is intended for LLM agents. Follow each step in order.
+> This guide is intended for LLM agents and follows a strict, no-decision checklist. Execute every step in order. Do **not** skip a step because it "looks optional".
 >
-> The primary target is **OpenAI Codex CLI** — this MCP server lets Codex delegate work to Claude Code as a sub-agent. Cursor and Windsurf are also supported. Calling this server from Claude Code itself or Claude Desktop is generally not useful.
+> Primary target: **OpenAI Codex CLI** (Codex delegates work to Claude Code as a sub-agent). Cursor and Windsurf are also supported (see §7).
 
-## 1. Prerequisites
+---
 
-### 1.1 Install Claude Code CLI (the binary this server wraps)
+## 1. Prerequisites — verify all three before continuing
 
-The recommended method is the **native installer** (no Node.js required, auto-updates):
+Run each command and confirm the expected output. If any fails, fix it before going to §2.
 
-**macOS / Linux / WSL:**
-```bash
-curl -fsSL https://claude.ai/install.sh | bash
-```
-
-**Windows PowerShell:**
-```powershell
-irm https://claude.ai/install.ps1 | iex
-```
-
-**Windows CMD:**
-```batch
-curl -fsSL https://claude.ai/install.cmd -o install.cmd && install.cmd && del install.cmd
-```
-
-Other supported methods:
-- Homebrew: `brew install --cask claude-code`
-- WinGet: `winget install Anthropic.ClaudeCode`
-- apt/dnf/apk via [downloads.claude.ai](https://downloads.claude.ai)
-- npm (advanced): `npm install -g @anthropic-ai/claude-code`
-
-Windows native install requires [Git for Windows](https://git-scm.com/downloads/win). See [Claude Code setup docs](https://code.claude.com/docs/en/setup) for details.
-
-### 1.2 Authenticate Claude Code
-
-**Option A — Sign in (Recommended for desktop use)**
-
-Run `claude` and follow the browser prompt. Requires a Pro, Max, Team, Enterprise, or Console (API) account.
-
-**Option B — Long-lived OAuth token (Recommended for CI / headless)**
-
-If the user has a Claude subscription, generate a long-lived OAuth token they can use without browser flow:
+### 1.1 Claude Code CLI installed
 
 ```bash
-claude setup-token
+claude --version
 ```
+Expected: a version string like `2.1.x (Claude Code)`.
 
-This prints a token to the terminal (it is not saved). Set it as `CLAUDE_CODE_OAUTH_TOKEN` before invoking the MCP server:
+If missing, install via the **native installer** (recommended; no Node.js needed):
+
+| Platform | Command |
+|---|---|
+| macOS / Linux / WSL | `curl -fsSL https://claude.ai/install.sh \| bash` |
+| Windows PowerShell | `irm https://claude.ai/install.ps1 \| iex` |
+| Windows CMD | `curl -fsSL https://claude.ai/install.cmd -o install.cmd && install.cmd && del install.cmd` |
+
+Other methods: `brew install --cask claude-code` · `winget install Anthropic.ClaudeCode` · apt/dnf/apk via [downloads.claude.ai](https://downloads.claude.ai) · `npm install -g @anthropic-ai/claude-code` (advanced). Windows native install requires [Git for Windows](https://git-scm.com/downloads/win). Full reference: [Claude Code setup docs](https://code.claude.com/docs/en/setup).
+
+### 1.2 Claude Code authenticated
 
 ```bash
-export CLAUDE_CODE_OAUTH_TOKEN=<paste-token-here>
+claude auth status
 ```
+Expected: a JSON object whose `loggedIn` field is `true` (exit code `0`).
 
-The token requires a Pro, Max, Team, or Enterprise plan and is scoped to inference only. **Note:** `--bare` mode does *not* read `CLAUDE_CODE_OAUTH_TOKEN` — if you set `bare: true` on the MCP tool, use Option C (`ANTHROPIC_API_KEY`) or an `apiKeyHelper` instead.
+If not logged in, pick one of the three:
 
-**Option C — Console API key**
+| Method | When to use | Command |
+|---|---|---|
+| Browser sign-in | Pro/Max/Team/Enterprise/Console subscription | `claude` (follow the browser prompt) |
+| Long-lived OAuth token | CI / headless | `claude setup-token` → copy → `export CLAUDE_CODE_OAUTH_TOKEN=…` |
+| Console API key | Direct API billing | `export ANTHROPIC_API_KEY=sk-ant-…` |
 
-For pure API-billing use:
+> **Note**: `--bare` mode does **not** read `CLAUDE_CODE_OAUTH_TOKEN`. If you intend to set `bare: true` on the MCP tool, use `ANTHROPIC_API_KEY` or an `apiKeyHelper`. See [Claude Code Authentication docs](https://code.claude.com/docs/en/authentication).
+
+After fixing, re-run `claude auth status` and confirm `loggedIn: true` before continuing.
+
+### 1.3 Bun installed
 
 ```bash
-export ANTHROPIC_API_KEY="sk-ant-..."
+bun --version
 ```
+Expected: a version string like `1.x.x`.
 
-See the [Claude Code Authentication docs](https://code.claude.com/docs/en/authentication).
+If missing, install:
 
-### 1.3 Install Bun (default runner) — optional but recommended
+| Platform | Command |
+|---|---|
+| macOS / Linux / WSL | `curl -fsSL https://bun.sh/install \| bash` |
+| Windows PowerShell | `powershell -c "irm bun.sh/install.ps1 \| iex"` |
 
-The MCP server is published to npm but the snippets in this guide invoke it via `bunx` for faster startup. If the user does not have Bun, install it:
+> `bunx` is a native `bunx.exe` on Windows (no `.cmd` shim), which avoids [openai/codex#16229](https://github.com/openai/codex/issues/16229). If you cannot install Bun, see Troubleshooting §5 for the `npx` fallback.
 
-```bash
-# macOS / Linux / WSL
-curl -fsSL https://bun.sh/install | bash
+---
 
-# Windows PowerShell
-powershell -c "irm bun.sh/install.ps1 | iex"
-```
-
-If the user explicitly prefers npm, replace every `bunx` with `npx` (and `"command": "bunx"` with `"command": "npx"` in JSON/TOML configs). The server runs unchanged on either runtime.
-
-## 2. Configure MCP Client
+## 2. Install for Codex CLI — paste this exact block
 
 ### 2.1 Ask the user for scope
 
-**STOP — you must ask the user before proceeding.**
+Ask the user (in their language): "Where do you want claude-cli-mcp available?"
 
-Ask the user in the same language they are using (e.g. if the conversation is in Korean, ask in Korean).
+| Choice | File to edit |
+|---|---|
+| **All projects (global)** | `~/.codex/config.toml` |
+| **This project only (private)** | `.codex/config.toml` in the project root (create if absent; loads only when the project is marked trusted in Codex) |
 
-Ask: "Where do you want claude-cli-mcp available?"
-
-| Choice | Meaning |
-|--------|---------|
-| **This project only (private)** | Only me, only this project |
-| **All projects (global)** | Only me, across all projects |
-
-> Codex does not have a built-in "shared with team" scope analogous to Claude Code's `--scope project`. Project-scoped Codex configs (`.codex/config.toml`) only load for projects the user has marked as trusted; mention this if the user asks for team-shared config.
-
-Wait for the user's answer, then use it in the steps below.
-
-### 2.2 Detect the MCP client
-
-Determine which MCP client you are running in. Match one of the sections below.
-
-### Codex CLI (primary target)
-
-Codex stores MCP server entries in `config.toml`. **The `codex mcp add` command always writes to the global file `~/.codex/config.toml` and does NOT set timeout keys.** Because `bunx`'s first run downloads the package and Claude Code itself takes a moment to start, you almost certainly want to extend the default timeouts. Editing `config.toml` directly is the recommended path.
-
-#### If user chose **All projects (global)** — edit `~/.codex/config.toml`
-#### If user chose **This project only (private)** — edit (or create) `.codex/config.toml` in the project root
-
-In both cases add the same TOML block:
-
-```toml
-[mcp_servers.claude-cli-mcp]
-command = "bunx"
-args = ["@nayagamez/claude-cli-mcp"]
-
-# Codex defaults are 10s / 60s. bunx cold install + Claude Code first
-# response easily exceed those. Override generously.
-startup_timeout_sec = 30
-tool_timeout_sec = 600
-```
-
-> Codex only loads `.codex/config.toml` for projects the user has marked as trusted. Confirm trust the next time you open the project.
-
-#### Alternative — `codex mcp add` (global only, no timeouts)
-
-If you don't need to set timeouts (e.g. the package is already cached and you have a fast network), you can use:
-
-```bash
-codex mcp add claude-cli-mcp -- bunx @nayagamez/claude-cli-mcp
-```
-
-This writes the block above without `startup_timeout_sec` / `tool_timeout_sec`. You can re-edit `~/.codex/config.toml` afterwards to add them.
-
-#### Optional — override Claude Code binary path
-
-If `claude` is not on `PATH`, add an env subtable. The `[mcp_servers.<name>.env]` form sets static values; the separate `env_vars = [...]` array tells Codex to forward variables that are already set in the user's shell.
+### 2.2 Add this exact TOML block to the chosen file
 
 ```toml
 [mcp_servers.claude-cli-mcp]
@@ -144,137 +83,123 @@ command = "bunx"
 args = ["@nayagamez/claude-cli-mcp"]
 startup_timeout_sec = 30
 tool_timeout_sec = 600
+```
 
+> **Both `startup_timeout_sec` and `tool_timeout_sec` are required.** Codex's defaults (10s / 60s) are shorter than `bunx`'s cold install and Claude Code's typical first response. Do not omit them. Do not lower them.
+
+### 2.3 (Optional) Override Claude Code binary path
+
+Only if `claude` is not on `PATH`:
+
+```toml
 [mcp_servers.claude-cli-mcp.env]
 CLAUDE_CLI_PATH = "/absolute/path/to/claude"
 ```
 
-> ## ⚠️ Restart Codex now — this is mandatory
->
-> Codex loads MCP servers **only at session startup**. Any `codex` session that was open when you saved `config.toml` will not see `claude-cli-mcp` until you fully restart it. Skipping this is the #1 cause of "tool not found" / "MCP server not loaded" confusion.
->
-> 1. In every open Codex session, type `/exit`.
-> 2. Start a new `codex` session.
-> 3. Proceed to §3 Verify below.
+---
 
-### Cursor
+## 3. Restart Codex — REQUIRED, do not skip
 
-- If user chose **This project only (private)** → add to `.cursor/mcp.json` in the project root
-- If user chose **All projects (global)** → add to `~/.cursor/mcp.json`
+**Codex loads MCP servers only at session startup. Editing `config.toml` while Codex is running has no effect on the running session.**
 
-```json
-{
-  "mcpServers": {
-    "claude-cli-mcp": {
-      "command": "bunx",
-      "args": ["@nayagamez/claude-cli-mcp"]
-    }
-  }
-}
+You must complete **both** sub-steps:
+
+### 3.1 Exit every open Codex session
+
+In each open `codex` terminal, type `/exit` and press Enter. Wait for the process to fully exit (the shell prompt returns).
+
+### 3.2 Start a fresh Codex session
+
+```bash
+codex
 ```
 
-### Windsurf
+If you skip §3, §4 will fail with `tool not found` or `MCP server not loaded`. Don't proceed to §4 until you are inside a Codex session that was started **after** the `config.toml` edit.
 
-- If user chose **This project only (private)** → add to `.windsurf/mcp.json` in the project root
-- If user chose **All projects (global)** → add via Windsurf settings UI
+---
 
-```json
-{
-  "mcpServers": {
-    "claude-cli-mcp": {
-      "command": "bunx",
-      "args": ["@nayagamez/claude-cli-mcp"]
-    }
-  }
-}
-```
+## 4. Verify — exact commands and expected outputs
 
-## 3. Verify
-
-### Codex CLI
-
-**IMPORTANT: Codex loads MCP servers at session startup.** If you ran `codex mcp add` (or edited `config.toml`) inside an existing `codex` session, that session does NOT see the new server yet. You must restart Codex first:
-
-1. In the current Codex session, type `/exit` to quit.
-2. Run `codex` again to start a fresh session.
-3. In the new session, simply ask:
-
-   ```
-   say hello using claude-cli-mcp
-   ```
-
-   Codex will invoke the `claude` tool and you should see a Session ID in the response.
-
-You can also confirm the server is registered without making a tool call:
+### 4.1 Confirm the server is registered
 
 ```bash
 codex mcp list
 ```
+Expected: an entry containing `claude-cli-mcp`.
 
-It should list `claude-cli-mcp`.
+### 4.2 Confirm the tool actually works
 
-> **Skipping the restart causes Codex to look very confused** (it sees the config but no tool, or replies as if the server doesn't exist). Always `/exit` and reopen.
+In the fresh Codex session, type:
 
-### Cursor / Windsurf
+```
+say hello using claude-cli-mcp
+```
 
-Open the MCP panel in the IDE and confirm the `claude` and `claude-reply` tools appear. Trigger one with `prompt: "say hi only"`. A Session ID in the response means setup is complete.
+Expected response from Codex includes:
+- A line beginning with `**Session ID:**` followed by a UUID.
+- A short Claude reply (e.g., `hi` or `hello`).
 
-## 4. Troubleshooting
+If both 4.1 and 4.2 succeed, installation is complete.
 
-If something doesn't work, match the symptom below.
+---
 
-### `MCP startup failed: handshaking with MCP server failed: connection closed: initialize response`
+## 5. Troubleshooting
 
-Codex's MCP startup timeout (default **10s**) was exceeded before the server replied to `initialize`. The most common cause is `bunx`'s first run downloading + extracting the package on a slow link. The TOML in §2 already sets `startup_timeout_sec = 30`. If you still see this:
+Match the symptom verbatim.
 
-- Make sure you actually saved the timeout keys and **restarted Codex** (see the box above §3).
-- Pre-warm the bunx cache by running it once outside Codex:
-  ```bash
-  echo '' | bunx @nayagamez/claude-cli-mcp
-  ```
-  Press Ctrl-C after a few seconds. Subsequent Codex spawns will be much faster.
-- Bump the timeout further: `startup_timeout_sec = 60`.
-- As a last resort, switch the runner to `npx -y` (slower per-call but sometimes more stable on Windows):
-  ```toml
-  command = "npx"
-  args = ["-y", "@nayagamez/claude-cli-mcp"]
-  ```
+### 5.1 `MCP startup failed: handshaking with MCP server failed: connection closed: initialize response`
 
-### `tool not found` / `no such tool: mcp__claude-cli-mcp__claude` / "MCP server not loaded"
+Codex's startup timeout fired before the server replied. The §2 block already sets `startup_timeout_sec = 30`. If you still see this:
 
-You edited `config.toml` while Codex was already running. Codex does **not** hot-reload MCP servers. `/exit` and start a new `codex` session.
+1. **Confirm you saved the file and restarted Codex** (§3). This is the most common cause.
+2. Pre-warm the bunx cache:
+   ```bash
+   echo '' | bunx @nayagamez/claude-cli-mcp
+   ```
+   Wait a few seconds, press Ctrl-C. Subsequent Codex spawns will be faster.
+3. Bump the timeout further: change `startup_timeout_sec = 30` to `60`, save, restart.
+4. **Switch to the `npx` fallback** (slower per call but sometimes more stable on Windows):
+   ```toml
+   [mcp_servers.claude-cli-mcp]
+   command = "npx"
+   args = ["-y", "@nayagamez/claude-cli-mcp"]
+   startup_timeout_sec = 30
+   tool_timeout_sec = 600
+   ```
+   Save, restart Codex.
 
-### `MCP server failed to reconnect`
+### 5.2 `tool not found` / `no such tool: mcp__claude-cli-mcp__claude` / "MCP server not loaded"
 
-The child `claude-cli-mcp` crashed or was killed mid-session. Common causes:
+You did not restart Codex after editing `config.toml`. Re-do §3.
 
-- The `claude` binary isn't on `PATH`. Verify with `which claude` (or `where claude` on Windows). Set `CLAUDE_CLI_PATH` in the `[mcp_servers.<name>.env]` subtable to an absolute path.
-- The Claude Code session itself failed to authenticate. Run `claude` standalone once and complete the browser login (or `claude setup-token`).
-- Enable debug logs to see why the child died:
+### 5.3 `MCP server failed to reconnect`
+
+The child crashed mid-session.
+
+- Verify the binary: `where claude` (Windows) or `which claude` (POSIX). If empty, fix `PATH` or set `CLAUDE_CLI_PATH` in `[mcp_servers.claude-cli-mcp.env]`.
+- Confirm auth: re-run `claude auth status`.
+- Enable debug logs:
   ```toml
   [mcp_servers.claude-cli-mcp.env]
   CLAUDE_MCP_DEBUG = "1"
   ```
-  Logs go to stderr; Codex surfaces them when MCP servers exit non-zero.
+  Restart Codex; child stderr now flows to Codex's MCP error surface.
 
-### `tool call cancelled` / `tool call timed out`
+### 5.4 `tool call cancelled` / `tool call timed out`
 
-Codex killed the call after `tool_timeout_sec` (default **60s**). The §2 TOML sets it to `600` (10 min) — bump higher if your Claude Code task legitimately needs more.
+Codex killed the call after `tool_timeout_sec`. The §2 block sets it to `600` (10 min). If your task legitimately needs longer, raise it (e.g., `1800` = 30 min). Restart Codex.
 
-### `Not logged in · Please run /login` (in the response payload)
+### 5.5 Response payload contains `Not logged in · Please run /login`
 
-The wrapped `claude` CLI cannot authenticate. Either:
-- Run `claude` standalone once and complete the browser sign-in, or
-- Run `claude setup-token` and `export CLAUDE_CODE_OAUTH_TOKEN=…` before launching Codex, or
-- Set `ANTHROPIC_API_KEY` in the `[mcp_servers.<name>.env]` subtable (use this if you also pass `bare: true` on the tool).
+The wrapped `claude` cannot authenticate. Re-do §1.2 and confirm `claude auth status` shows `loggedIn: true`. If you set `bare: true` on the tool, you must use `ANTHROPIC_API_KEY` or `apiKeyHelper` (OAuth tokens are not read in `--bare` mode).
 
-### Windows-specific: silent exit / hang / `Query closed before response received`
+### 5.6 Windows-specific: silent exit / hang / `Query closed before response received`
 
-Known upstream issue [anthropics/claude-code#50616](https://github.com/anthropics/claude-code/issues/50616). The wrapper cannot work around it. Run Codex (and Claude Code) inside WSL, or set `CLAUDE_CLI_PATH` to a WSL-resolved path.
+Known upstream bug ([anthropics/claude-code#50616](https://github.com/anthropics/claude-code/issues/50616)). The wrapper cannot work around it. Run Codex inside WSL, or set `CLAUDE_CLI_PATH` to a WSL path.
 
-### Codex on Windows fails to launch via shell-shimmed runners
+### 5.7 Codex on Windows fails to launch via shell-shimmed runners
 
-Known upstream issue [openai/codex#16229](https://github.com/openai/codex/issues/16229). `bunx` itself is a native `bunx.exe` (no shim) and is the safer choice on Windows. If you're forced onto `npx`, point Codex at an absolute `node.exe` + the installed package's `dist/index.js` instead:
+Known upstream bug ([openai/codex#16229](https://github.com/openai/codex/issues/16229)). `bunx` is a native `bunx.exe` and is the safer choice on Windows. If you must use `npx` (a `.cmd` shim), point Codex at an absolute `node.exe` + the installed package's entry script:
 
 ```toml
 [mcp_servers.claude-cli-mcp]
@@ -286,11 +211,38 @@ tool_timeout_sec = 600
 
 ---
 
-## 5. Important Warnings
+## 6. Important Warnings
 
-When using this server, be aware of:
+When using this server, be aware:
 
-1. **Default permission mode is `bypassPermissions`** — matches `codex --full-auto` parity. For sensitive workspaces, pass `permissionMode: "acceptEdits"` or `"auto"`.
-2. **Resume requires the original cwd** — `claude-reply` must run from the directory the original session was started in (Claude Code [issue #5768](https://github.com/anthropics/claude-code/issues/5768)).
-3. **Windows native CLI bug** — Claude Code on Windows native may exit silently or hang ([issue #50616](https://github.com/anthropics/claude-code/issues/50616)). WSL is the recommended fallback.
-4. **`bare: true` requires API key** — `--bare` mode skips OAuth; only works with `ANTHROPIC_API_KEY` or `apiKeyHelper`.
+1. **Default permission mode is `bypassPermissions`** — matches `codex --full-auto` parity. For sensitive workspaces, pass `permissionMode: "acceptEdits"` or `"auto"` on the tool call.
+2. **Resume requires the original cwd** — `claude-reply` must run from the directory the original session was started in (Claude Code [#5768](https://github.com/anthropics/claude-code/issues/5768)).
+3. **Windows native CLI bug** — see §5.6.
+4. **`bare: true` requires API key** — `--bare` skips OAuth; only `ANTHROPIC_API_KEY` or `apiKeyHelper` work.
+
+---
+
+## 7. Other MCP clients (Cursor / Windsurf)
+
+If the user is on Cursor or Windsurf instead of Codex, replace §2.2 with the appropriate JSON config; everything else (§1 Prerequisites, §3 restart, §4 verify, §5 Troubleshooting) still applies — including the timeout fields if the client supports them.
+
+### Cursor
+- Project-scope: `.cursor/mcp.json` in the project root
+- Global: `~/.cursor/mcp.json`
+
+### Windsurf
+- Project-scope: `.windsurf/mcp.json` in the project root
+- Global: via Windsurf settings UI
+
+```json
+{
+  "mcpServers": {
+    "claude-cli-mcp": {
+      "command": "bunx",
+      "args": ["@nayagamez/claude-cli-mcp"]
+    }
+  }
+}
+```
+
+> Cursor/Windsurf do not currently expose Codex's `startup_timeout_sec`/`tool_timeout_sec` keys. If you hit timeouts there, pre-warm the bunx cache (§5.1 step 2) before launching the editor.

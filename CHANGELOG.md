@@ -2,6 +2,17 @@
 
 All notable changes to this project will be documented in this file.
 
+## [0.1.6] - 2026-04-23
+
+### Changed
+- `docs/guide/installation.md` rewritten as a strict, no-decision checklist after a reviewer flagged that the previous structure left agents room to skip the two most-skipped steps: (a) restarting Codex after editing `config.toml`, and (b) including `startup_timeout_sec`/`tool_timeout_sec` in the TOML block.
+  - **§1 Prerequisites** is now three verifiable commands (`claude --version`, `claude auth status`, `bun --version`) with the exact pass criteria; auth options collapsed into a single sub-table.
+  - **§2 Install** presents a single mandatory TOML block. The previous `codex mcp add` one-liner was removed because it cannot set timeout keys, which made the alternative path silently produce broken installs.
+  - **§3 Restart** is now its own numbered step with two sub-steps (`/exit` everywhere, then `codex`) and an explicit "do not proceed to §4 until you are inside a session started after the edit". Previously this lived inside §3 Verify and was ignored by agents.
+  - **§4 Verify** specifies the exact prompt to type and the exact expected output (`Session ID:` line + Claude reply).
+  - **§5 Troubleshooting** gains an `npx` fallback entry (5.1) for cases where bunx cold-start cannot be tamed via timeouts alone.
+  - **§7 Other MCP clients** (Cursor/Windsurf) split out so the Codex flow stays linear; clarifies that those clients lack Codex's timeout keys.
+
 ## [0.1.5] - 2026-04-23
 
 ### Added

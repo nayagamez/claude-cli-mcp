@@ -1,6 +1,6 @@
 {
   "name": "@nayagamez/claude-cli-mcp",
-  "version": "0.1.5",
+  "version": "0.1.6",
   "description": "MCP server wrapping Anthropic Claude Code CLI as tools",
   "type": "module",
   "main": "dist/index.js",
