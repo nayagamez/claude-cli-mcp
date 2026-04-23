@@ -2,6 +2,20 @@
 
 All notable changes to this project will be documented in this file.
 
+## [0.1.5] - 2026-04-23
+
+### Added
+- `docs/guide/installation.md`: new §4 Troubleshooting section covering the 6 most common failure modes:
+  - `MCP startup failed: ... initialize response` (timeout) — pre-warm bunx, bump `startup_timeout_sec`, or fall back to `npx -y`.
+  - `tool not found` / "MCP server not loaded" — Codex doesn't hot-reload; `/exit` and restart.
+  - `MCP server failed to reconnect` — `claude` not on PATH, auth missing, or a child crash. Enable `CLAUDE_MCP_DEBUG=1`.
+  - `tool call cancelled` / timed out — bump `tool_timeout_sec`.
+  - `Not logged in · Please run /login` in the response — fix Claude Code auth (sign-in, `setup-token`, or `ANTHROPIC_API_KEY`).
+  - Windows-specific: silent exit / hang (upstream #50616) and shell-shim runner failures (upstream codex#16229) with absolute-path workaround.
+
+### Changed
+- `docs/guide/installation.md`: hoisted the "Restart Codex now" instruction out of §3 Verify and into a mandatory callout immediately after the Codex `config.toml` block, since skipping the restart is the #1 source of "tool not found" confusion.
+
 ## [0.1.4] - 2026-04-23
 
 ### Changed

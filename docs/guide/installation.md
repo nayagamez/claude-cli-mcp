@@ -149,7 +149,13 @@ tool_timeout_sec = 600
 CLAUDE_CLI_PATH = "/absolute/path/to/claude"
 ```
 
-After saving, **restart Codex** (close and reopen the CLI session, or restart the IDE extension) to load the new server.
+> ## ⚠️ Restart Codex now — this is mandatory
+>
+> Codex loads MCP servers **only at session startup**. Any `codex` session that was open when you saved `config.toml` will not see `claude-cli-mcp` until you fully restart it. Skipping this is the #1 cause of "tool not found" / "MCP server not loaded" confusion.
+>
+> 1. In every open Codex session, type `/exit`.
+> 2. Start a new `codex` session.
+> 3. Proceed to §3 Verify below.
 
 ### Cursor
 
@@ -213,7 +219,74 @@ It should list `claude-cli-mcp`.
 
 Open the MCP panel in the IDE and confirm the `claude` and `claude-reply` tools appear. Trigger one with `prompt: "say hi only"`. A Session ID in the response means setup is complete.
 
-## 4. Important Warnings
+## 4. Troubleshooting
+
+If something doesn't work, match the symptom below.
+
+### `MCP startup failed: handshaking with MCP server failed: connection closed: initialize response`
+
+Codex's MCP startup timeout (default **10s**) was exceeded before the server replied to `initialize`. The most common cause is `bunx`'s first run downloading + extracting the package on a slow link. The TOML in §2 already sets `startup_timeout_sec = 30`. If you still see this:
+
+- Make sure you actually saved the timeout keys and **restarted Codex** (see the box above §3).
+- Pre-warm the bunx cache by running it once outside Codex:
+  ```bash
+  echo '' | bunx @nayagamez/claude-cli-mcp
+  ```
+  Press Ctrl-C after a few seconds. Subsequent Codex spawns will be much faster.
+- Bump the timeout further: `startup_timeout_sec = 60`.
+- As a last resort, switch the runner to `npx -y` (slower per-call but sometimes more stable on Windows):
+  ```toml
+  command = "npx"
+  args = ["-y", "@nayagamez/claude-cli-mcp"]
+  ```
+
+### `tool not found` / `no such tool: mcp__claude-cli-mcp__claude` / "MCP server not loaded"
+
+You edited `config.toml` while Codex was already running. Codex does **not** hot-reload MCP servers. `/exit` and start a new `codex` session.
+
+### `MCP server failed to reconnect`
+
+The child `claude-cli-mcp` crashed or was killed mid-session. Common causes:
+
+- The `claude` binary isn't on `PATH`. Verify with `which claude` (or `where claude` on Windows). Set `CLAUDE_CLI_PATH` in the `[mcp_servers.<name>.env]` subtable to an absolute path.
+- The Claude Code session itself failed to authenticate. Run `claude` standalone once and complete the browser login (or `claude setup-token`).
+- Enable debug logs to see why the child died:
+  ```toml
+  [mcp_servers.claude-cli-mcp.env]
+  CLAUDE_MCP_DEBUG = "1"
+  ```
+  Logs go to stderr; Codex surfaces them when MCP servers exit non-zero.
+
+### `tool call cancelled` / `tool call timed out`
+
+Codex killed the call after `tool_timeout_sec` (default **60s**). The §2 TOML sets it to `600` (10 min) — bump higher if your Claude Code task legitimately needs more.
+
+### `Not logged in · Please run /login` (in the response payload)
+
+The wrapped `claude` CLI cannot authenticate. Either:
+- Run `claude` standalone once and complete the browser sign-in, or
+- Run `claude setup-token` and `export CLAUDE_CODE_OAUTH_TOKEN=…` before launching Codex, or
+- Set `ANTHROPIC_API_KEY` in the `[mcp_servers.<name>.env]` subtable (use this if you also pass `bare: true` on the tool).
+
+### Windows-specific: silent exit / hang / `Query closed before response received`
+
+Known upstream issue [anthropics/claude-code#50616](https://github.com/anthropics/claude-code/issues/50616). The wrapper cannot work around it. Run Codex (and Claude Code) inside WSL, or set `CLAUDE_CLI_PATH` to a WSL-resolved path.
+
+### Codex on Windows fails to launch via shell-shimmed runners
+
+Known upstream issue [openai/codex#16229](https://github.com/openai/codex/issues/16229). `bunx` itself is a native `bunx.exe` (no shim) and is the safer choice on Windows. If you're forced onto `npx`, point Codex at an absolute `node.exe` + the installed package's `dist/index.js` instead:
+
+```toml
+[mcp_servers.claude-cli-mcp]
+command = "C:\\Program Files\\nodejs\\node.exe"
+args = ["C:\\path\\to\\global\\node_modules\\@nayagamez\\claude-cli-mcp\\dist\\index.js"]
+startup_timeout_sec = 30
+tool_timeout_sec = 600
+```
+
+---
+
+## 5. Important Warnings
 
 When using this server, be aware of:
 
